@@ -120,6 +120,14 @@ contract Raffle is VRFConsumerBaseV2 {
             @dev We're gonna make a request to the chainlink node to give us a random number (requestRandomWords);
         */
         // Interactions (Other contracts)
+        /**
+            @dev It's gonna generate the random number, 
+            @dev and then it's gonna call a very specific contract on chain called `VRFCoordinator` 
+            @dev where only the chainlink node can respond to.
+            @dev that contract is gonna call rawFulfillRandomWords in `VRFConsumerBaseV2`,
+            @dev finally `rawFulfillRandomWords` function is gonna call `fulfillRandomWords`
+            @dev which exists in `VRFConsumerBaseV2` contract which we are overriding.
+        */
         i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
@@ -127,14 +135,7 @@ contract Raffle is VRFConsumerBaseV2 {
             i_callbackGasLimit,
             NUM_WORDS
         );
-        /**
-            @dev It's gonna generate the random number, 
-            @dev and then it's gonna call a very specific contract on chain called `VRFCoordinator` 
-            @dev where only the chainlink node can respond to.
-            @dev that contrct is gonna call rawFulfillRandomWords in `VRFConsumerBaseV2`,
-            @dev finally `rawFulfillRandomWords` function is gonna call `fulfillRandomWords`
-            @dev which exists in `VRFConsumerBaseV2` contract which we are overriding.
-        */
+        
     }
 
     // ✅ CEI Verified Function
