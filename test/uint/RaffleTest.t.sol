@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import {DeployRaffle} from "../../script/DeployRaffle.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
-import {Test, Console} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 
 contract RaffleTest is Test {
@@ -12,12 +12,13 @@ contract RaffleTest is Test {
 
     address public PLAYER = makeAddr("player");
     uint256 public constant STARTING_USER_BALANCE = 10 ether;
+    HelperConfig helperConfig;
     uint256 entranceFee;
     uint256 interval;
     address vrfCoordinator;
     bytes32 gasLane;
     uint64 subscriptionId;
-    uint32 callbackGasLimi;
+    uint32 callbackGasLimit;
 
     function setUp() external {
         DeployRaffle deployer = new DeployRaffle();
