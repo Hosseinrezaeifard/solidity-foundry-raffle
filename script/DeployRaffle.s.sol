@@ -16,7 +16,7 @@ contract DeployRaffle is Script {
             bytes32 gasLane,
             uint64 subscriptionId,
             uint32 callbackGasLimit
-        ) = HelperConfig.activeNetworkConfig();
+        ) = helperConfig.activeNetworkConfig();
 
         vm.startBroadcast();
         Raffle raffle = new Raffle(
