@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.20;
 
-import { Script } from "forge-std/Script.sol";
-import { Raffle } from "../src/Raffle.sol";
-import { HelperConfig } from "./HelperConfig.s.sol";
+import {Script} from "forge-std/Script.sol";
+import {Raffle} from "../src/Raffle.sol";
+import {HelperConfig} from "./HelperConfig.s.sol";
 
 contract DeployRaffle is Script {
     function run() external returns (Raffle) {
@@ -21,13 +21,12 @@ contract DeployRaffle is Script {
         vm.startBroadcast();
         Raffle raffle = new Raffle(
             entranceFee,
-interval,
-vrfCoordinator,
-gasLane,
-subscriptionId,
-callbackGasLimit,
-        )
+            interval,
+            vrfCoordinator,
+            gasLane,
+            subscriptionId,
+            callbackGasLimit
+        );
         vm.stopBroadcast();
-
     }
 }
