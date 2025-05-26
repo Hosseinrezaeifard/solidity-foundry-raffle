@@ -8,6 +8,10 @@ import {Test, console} from "forge-std/Test.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 
 contract RaffleTest is Test {
+
+    /** ================= Events ================= */
+    event EnteredRaffle(address indexed player);
+
     Raffle raffle;
 
     address public PLAYER = makeAddr("player");
@@ -19,6 +23,7 @@ contract RaffleTest is Test {
     bytes32 gasLane;
     uint64 subscriptionId;
     uint32 callbackGasLimit;
+    address link;
 
     function setUp() external {
         DeployRaffle deployer = new DeployRaffle();
@@ -29,7 +34,8 @@ contract RaffleTest is Test {
             vrfCoordinator,
             gasLane,
             subscriptionId,
-            callbackGasLimit
+            callbackGasLimit,
+            link
         ) = helperConfig.activeNetworkConfig();
         vm.deal(PLAYER, STARTING_USER_BALANCE);
     }
@@ -50,8 +56,33 @@ contract RaffleTest is Test {
         // Arrange
         vm.prank(PLAYER);
         // Act
-        raffle.enterRaffle{value: 1 ether}();
+        raffle.enterRaffle{value: entranceFee}();
         // Assert
         vm.assertEq(address(PLAYER), raffle.getPlayers()[0]);
+    }
+
+    function testEmitsEventOnEntrance() public {
+        vm.prank(PLAYER);
+        /** 
+        @dev When using the below line, we're saying that we expect the next emit happen in the next transaction 
+        vm.expectEmit(checkTopic1, checkTopic2, checkTopic3, checkData, (address of emitter));
+        */
+        vm.expectEmit(true, false, false, false, address(raffle));
+        emit EnteredRaffle(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+    }
+
+    function testCantEnterWhenRaffleIsCalculated() public {
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        // Optional
+        vm.roll(block.number + 1);
+
+        raffle.performUpkeep("");
+
+        vm.expectRevert(Raffle.Raffle__RaffleNotOpen.selector);
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
     }
 }
