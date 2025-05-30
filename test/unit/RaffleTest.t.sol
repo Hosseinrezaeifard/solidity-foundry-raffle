@@ -7,6 +7,7 @@ import {Raffle} from "../../src/Raffle.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
 
 contract RaffleTest is Test {
     /** ================= Events ================= */
@@ -35,7 +36,8 @@ contract RaffleTest is Test {
             gasLane,
             subscriptionId,
             callbackGasLimit,
-            link
+            link,
+
         ) = helperConfig.activeNetworkConfig();
         vm.deal(PLAYER, STARTING_USER_BALANCE);
     }
@@ -76,10 +78,13 @@ contract RaffleTest is Test {
         raffle.enterRaffle{value: entranceFee}();
     }
 
-    function testCantEnterWhenRaffleIsCalculated() public raffleEnteredAndTimePassed {
+    function testCantEnterWhenRaffleIsCalculated()
+        public
+        raffleEnteredAndTimePassed
+    {
         // Arrange
         /** Done using modifier */
-        
+
         raffle.performUpkeep("");
 
         vm.expectRevert(Raffle.Raffle__RaffleNotOpen.selector);
@@ -102,10 +107,13 @@ contract RaffleTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsFalseIfRaffleNotOpen() public raffleEnteredAndTimePassed {
+    function testCheckUpkeepReturnsFalseIfRaffleNotOpen()
+        public
+        raffleEnteredAndTimePassed
+    {
         // Arrange
         /** Done using modifier */
-        
+
         raffle.performUpkeep("");
         // Act
         (bool upkeepNeeded, ) = raffle.checkUpkeep("");
@@ -114,7 +122,10 @@ contract RaffleTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed() public raffleEntered {
+    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed()
+        public
+        raffleEntered
+    {
         // Arrange
         /** Done using modifier */
 
@@ -125,7 +136,10 @@ contract RaffleTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsTrueWhenParametersAreGood() public raffleEnteredAndTimePassed {
+    function testCheckUpkeepReturnsTrueWhenParametersAreGood()
+        public
+        raffleEnteredAndTimePassed
+    {
         // Arrange
         /** Done using modifier */
 
@@ -140,7 +154,10 @@ contract RaffleTest is Test {
                              PERFORMUPKEEP
     //////////////////////////////////////////////////////////////*/
 
-    function testPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue() public raffleEnteredAndTimePassed{
+    function testPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue()
+        public
+        raffleEnteredAndTimePassed
+    {
         // Arrange
         /** Done using modifier */
 
@@ -167,7 +184,10 @@ contract RaffleTest is Test {
         raffle.performUpkeep("");
     }
 
-    function testPerformUpkeepUpdatesRaffleStateAndEmitsRequestId() public raffleEnteredAndTimePassed {
+    function testPerformUpkeepUpdatesRaffleStateAndEmitsRequestId()
+        public
+        raffleEnteredAndTimePassed
+    {
         // Arrange
         /** Done using modifier */
 
@@ -185,7 +205,90 @@ contract RaffleTest is Test {
         assert(uint256(rState) == 1);
     }
 
-    
+    /*//////////////////////////////////////////////////////////////
+                             FULFILLRANDOMWORDS
+    //////////////////////////////////////////////////////////////*/
+
+    function testFulfillRandomWordsCanOnlyBeCalledAfterPerformUpkeep(
+        uint256 randomRequestId
+    ) public raffleEnteredAndTimePassed skipFork {
+        /** This is a "Fuzz" test */
+        // Arrange
+        /** Done using modifier */
+        // Act / Assert
+        vm.expectRevert("nonexistent request");
+        VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(
+            randomRequestId,
+            address(raffle)
+        );
+    }
+
+    function testFulfillRandomWordsPicksAWinnerResetsAndSendsMoney()
+        public
+        raffleEnteredAndTimePassed
+        skipFork
+    {
+        // Arrange
+        uint256 additionalEntrants = 5;
+        uint256 startingIndex = 1;
+        for (
+            uint256 i = startingIndex;
+            i < startingIndex + additionalEntrants;
+            i++
+        ) {
+            address player = address(uint160(i)); // Equivilant to address(x) where x is a uint256
+            hoax(player, STARTING_USER_BALANCE);
+            raffle.enterRaffle{value: entranceFee}();
+        }
+
+        // Act
+        /** Pretend to be chainlink vrf to get random number */
+        // get the requestId
+
+        uint256 prize = entranceFee * (additionalEntrants + 1);
+
+        vm.recordLogs();
+        raffle.performUpkeep("");
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+
+        uint256 prevTimeStamp = raffle.getLastTimestamp();
+
+        // Pretending
+        VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(
+            uint256(requestId),
+            address(raffle)
+        );
+
+        // Assert
+        assert(uint256(raffle.getRaffleState()) == 0);
+        assert(raffle.getRecentWinner() != address(0));
+        assert(raffle.getLengthOfPlayers() == 0);
+        assert(prevTimeStamp < raffle.getLastTimestamp());
+        assert(
+            raffle.getRecentWinner().balance ==
+                STARTING_USER_BALANCE + prize - entranceFee
+        );
+    }
+
+    function getChainID() internal view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier skipFork() {
+        if (getChainID() != 31337) {
+            return;
+        }
+        _;
+    }
 
     modifier raffleEnteredAndTimePassed() {
         vm.prank(PLAYER);
@@ -195,13 +298,13 @@ contract RaffleTest is Test {
         _;
     }
 
-    modifier raffleEntered {
+    modifier raffleEntered() {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
         _;
     }
 
-    modifier timePassed {
+    modifier timePassed() {
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
         _;

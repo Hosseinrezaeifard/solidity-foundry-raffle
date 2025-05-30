@@ -17,7 +17,11 @@ contract Raffle is VRFConsumerBaseV2 {
     error Raffle__NotEnoughEthSent();
     error Raffle__TransferFailed();
     error Raffle__RaffleNotOpen();
-    error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
+    error Raffle__UpkeepNotNeeded(
+        uint256 currentBalance,
+        uint256 numPlayers,
+        uint256 raffleState
+    );
 
     /** ================= Type Declarations ================= */
     /** @dev each field in enum can be converted to interge => for example: Open would be 0, calculating would be 1 */
@@ -138,7 +142,6 @@ contract Raffle is VRFConsumerBaseV2 {
         );
 
         emit RequestedRaffleWinner(requestId);
-        
     }
 
     // ✅ CEI Verified Function
@@ -150,7 +153,7 @@ contract Raffle is VRFConsumerBaseV2 {
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable winner = s_players[indexOfWinner];
         s_recentWinner = winner;
-        s_raffleState = RaffleState.CALCULATING;
+        s_raffleState = RaffleState.OPEN;
         s_players = new address payable[](0);
         s_lastTimeStamp = block.timestamp;
         emit PickedWinner(winner);
@@ -172,5 +175,17 @@ contract Raffle is VRFConsumerBaseV2 {
 
     function getPlayers() external view returns (address payable[] memory) {
         return s_players;
+    }
+
+    function getRecentWinner() external view returns (address) {
+        return s_recentWinner;
+    }
+
+    function getLengthOfPlayers() external view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getLastTimestamp() external view returns (uint256) {
+        return s_lastTimeStamp;
     }
 }
