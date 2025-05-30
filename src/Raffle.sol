@@ -44,6 +44,7 @@ contract Raffle is VRFConsumerBaseV2 {
     /** ================= Events ================= */
     event EnteredRaffle(address indexed player);
     event PickedWinner(address indexed winner);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     /** ================= Functions ================= */
     constructor(
@@ -128,13 +129,15 @@ contract Raffle is VRFConsumerBaseV2 {
             @dev finally `rawFulfillRandomWords` function is gonna call `fulfillRandomWords`
             @dev which exists in `VRFConsumerBaseV2` contract which we are overriding.
         */
-        i_vrfCoordinator.requestRandomWords(
+        uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
             REQUEST_CONFIRMATIONS,
             i_callbackGasLimit,
             NUM_WORDS
         );
+
+        emit RequestedRaffleWinner(requestId);
         
     }
 
