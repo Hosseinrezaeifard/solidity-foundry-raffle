@@ -76,13 +76,10 @@ contract RaffleTest is Test {
         raffle.enterRaffle{value: entranceFee}();
     }
 
-    function testCantEnterWhenRaffleIsCalculated() public {
-        vm.prank(PLAYER);
-        raffle.enterRaffle{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        // Optional
-        vm.roll(block.number + 1);
-
+    function testCantEnterWhenRaffleIsCalculated() public raffleEnteredAndTimePassed {
+        // Arrange
+        /** Done using modifier */
+        
         raffle.performUpkeep("");
 
         vm.expectRevert(Raffle.Raffle__RaffleNotOpen.selector);
@@ -94,11 +91,9 @@ contract RaffleTest is Test {
                               CHECKUPKEEP
     //////////////////////////////////////////////////////////////*/
 
-    function testCheckUpkeepReturnsFalseIfItHasNoBalance() public {
+    function testCheckUpkeepReturnsFalseIfItHasNoBalance() public timePassed {
         // Arrange
-        vm.warp(block.timestamp + interval + 1);
-        // Optional
-        vm.roll(block.number + 1);
+        /** Done using modifier */
 
         // Act
         (bool upkeepNeeded, ) = raffle.checkUpkeep("");
@@ -107,13 +102,10 @@ contract RaffleTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsFalseIfRaffleNotOpen() public {
+    function testCheckUpkeepReturnsFalseIfRaffleNotOpen() public raffleEnteredAndTimePassed {
         // Arrange
-        vm.prank(PLAYER);
-        raffle.enterRaffle{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        // Optional
-        vm.roll(block.number + 1);
+        /** Done using modifier */
+        
         raffle.performUpkeep("");
         // Act
         (bool upkeepNeeded, ) = raffle.checkUpkeep("");
@@ -122,10 +114,9 @@ contract RaffleTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed() public {
+    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed() public raffleEntered {
         // Arrange
-        vm.prank(PLAYER);
-        raffle.enterRaffle{value: entranceFee}();
+        /** Done using modifier */
 
         // Act
         (bool upkeepNeeded, ) = raffle.checkUpkeep("");
@@ -134,12 +125,9 @@ contract RaffleTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsTrueWhenParametersAreGood() public {
+    function testCheckUpkeepReturnsTrueWhenParametersAreGood() public raffleEnteredAndTimePassed {
         // Arrange
-        vm.prank(PLAYER);
-        raffle.enterRaffle{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        vm.roll(block.number + 1);
+        /** Done using modifier */
 
         // Act
         (bool upkeepNeeded, ) = raffle.checkUpkeep("");
@@ -152,12 +140,9 @@ contract RaffleTest is Test {
                              PERFORMUPKEEP
     //////////////////////////////////////////////////////////////*/
 
-    function testPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue() public {
+    function testPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue() public raffleEnteredAndTimePassed{
         // Arrange
-        vm.prank(PLAYER);
-        raffle.enterRaffle{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        vm.roll(block.number + 1);
+        /** Done using modifier */
 
         // Act / Assert
         // It doesnt revert
@@ -182,7 +167,7 @@ contract RaffleTest is Test {
         raffle.performUpkeep("");
     }
 
-    function testPerformUpkeepUpdatesRaffleStateAndEmitsRequestId() public raffleEnteredAndTimePassed(){
+    function testPerformUpkeepUpdatesRaffleStateAndEmitsRequestId() public raffleEnteredAndTimePassed {
         // Arrange
         /** Done using modifier */
 
@@ -200,9 +185,23 @@ contract RaffleTest is Test {
         assert(uint256(rState) == 1);
     }
 
+    
+
     modifier raffleEnteredAndTimePassed() {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        _;
+    }
+
+    modifier raffleEntered {
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+        _;
+    }
+
+    modifier timePassed {
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
         _;
